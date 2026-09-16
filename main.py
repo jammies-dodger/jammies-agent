@@ -1,6 +1,8 @@
-def main():
-    print("Hello from jammies-agent!")
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+api_key = os.environ.get("OPENROUTER_API_KEY")
 
-if __name__ == "__main__":
-    main()
+if api_key is None: raise RuntimeError('OPENROUTER_API_KEY could not be loaded from .env file')
+
