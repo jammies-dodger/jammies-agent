@@ -5,6 +5,7 @@ from openai import OpenAI
 
 parser = argparse.ArgumentParser(description="jammies ai agent chatbot")
 parser.add_argument("user_prompt", type=str, help="User prompt")
+parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 args = parser.parse_args()
 
 ## load env vars
@@ -12,7 +13,7 @@ load_dotenv()
 api_key = os.environ.get("OPENROUTER_API_KEY")
 prompt_mode = str.lower(os.environ.get("PROMPT_MODE"))
 
-def runPrompt():
+def generate_content():
     if prompt_mode == "disable" or prompt_mode == "disabled": 
         print(f"---prompt skipped---")
         return 
@@ -28,25 +29,31 @@ def runPrompt():
 
     if user_prompt is None or len(user_prompt) == 0: raise TypeError('Missing prompt')
 
+    messages = [
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    ]
+
+
     response = client.chat.completions.create(
         model="openrouter/free",
-        messages= [
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ]
+        messages=messages
     )
 
     if response.usage is None: raise RuntimeError('response.usage is None, api request likely failed')
 
     # Track token usage
-    prompt_tokens = response.usage.prompt_tokens
-    completion_tokens = response.usage.completion_tokens
-    print(f"Prompt tokens: {prompt_tokens}\nResponse tokens: {completion_tokens}")
+    
+    if args.verbose: 
+        prompt_tokens = response.usage.prompt_tokens
+        completion_tokens = response.usage.completion_tokens
 
+        print(f"User prompt: {user_prompt}")
+        print(f"Prompt tokens: {prompt_tokens}\nResponse tokens: {completion_tokens}")
 
+    
     print(response.choices[0].message.content)
 
-
-runPrompt()
+generate_content()
