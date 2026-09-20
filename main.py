@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from prompts import system_prompt
-from call_function import available_functions
+from call_function import available_functions, call_function
 
 parser = argparse.ArgumentParser(description="jammies ai agent chatbot")
 parser.add_argument("user_prompt", type=str, help="User prompt")
@@ -51,7 +51,7 @@ def generate_content():
         model="openrouter/free",
         messages=messages,
         tools=available_functions,
-        temperature=0,
+        temperature=0.2,
     )
     if response.usage is None: raise RuntimeError('response.usage is None, api request likely failed')
 
@@ -67,8 +67,15 @@ def generate_content():
     message = response.choices[0].message
     if message.tool_calls:
         for tool_call in message.tool_calls:
-            function_args = json.loads(tool_call.function.arguments or "{}")
-            print(f"Calling function:  {tool_call.function.name}({function_args})")
+            try:
+                function_args = json.loads(tool_call.function.arguments or "{}")
+                result_message = call_function(tool_call, args.verbose)
+                if len(result_message["content"]) == 0:
+                    raise RuntimeError(f"Error: no result content of called function: {tool_call.function.name}({function_args})")
+            except Exception as e:
+                print(e)
+            else:
+                if args.verbose: print(f"-> {result_message['content']}")
     else:
         print(message.content)
 
