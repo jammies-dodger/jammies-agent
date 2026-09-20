@@ -10,12 +10,16 @@ class Calculator:
             "-": lambda a, b: a - b,
             "*": lambda a, b: a * b,
             "/": lambda a, b: a / b,
+            "%": lambda a, b: a % b,
+            "**": lambda a, b: a ** b,  # Added exponentiation operator
         }
         self.precedence: dict[str, int] = {
             "+": 1,
             "-": 1,
             "*": 2,
             "/": 2,
+            "%": 2,
+            "**": 3,  # Added exponentiation with highest precedence
         }
 
     def evaluate(self, expression: str) -> float | None:
@@ -28,16 +32,29 @@ class Calculator:
         """Split expression into tokens, separating operators and parentheses."""
         tokens = []
         current = ""
-        for char in expression:
+        i = 0
+        while i < len(expression):
+            char = expression[i]
             if char == " ":
+                i += 1
                 continue
-            if char in "()+-*/":
+            # Check for ** operator first
+            if char == "*" and i + 1 < len(expression) and expression[i + 1] == "*":
+                if current:
+                    tokens.append(current)
+                    current = ""
+                tokens.append("**")
+                i += 2
+                continue
+            if char in "()+-*/%":
                 if current:
                     tokens.append(current)
                     current = ""
                 tokens.append(char)
+                i += 1
             else:
                 current += char
+                i += 1
         if current:
             tokens.append(current)
         return tokens
