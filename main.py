@@ -1,9 +1,11 @@
+import json
 import os
 import argparse
 from dotenv import load_dotenv
 from openai import OpenAI
 
 from prompts import system_prompt
+from call_function import available_functions
 
 parser = argparse.ArgumentParser(description="jammies ai agent chatbot")
 parser.add_argument("user_prompt", type=str, help="User prompt")
@@ -14,6 +16,8 @@ args = parser.parse_args()
 load_dotenv()
 api_key = os.environ.get("OPENROUTER_API_KEY")
 prompt_mode = str.lower(os.environ.get("PROMPT_MODE"))
+
+
 
 def generate_content():
     if prompt_mode == "disable" or prompt_mode == "disabled":
@@ -46,14 +50,10 @@ def generate_content():
     response = client.chat.completions.create(
         model="openrouter/free",
         messages=messages,
-        temperature=0
+        tools=available_functions,
+        temperature=0,
     )
-
-
-
     if response.usage is None: raise RuntimeError('response.usage is None, api request likely failed')
-
-    # Track token usage
 
     if args.verbose:
         prompt_tokens = response.usage.prompt_tokens
@@ -63,6 +63,13 @@ def generate_content():
         print(f"User prompt: {user_prompt}")
         print(f"Prompt tokens: {prompt_tokens}\nResponse tokens: {completion_tokens}")
 
-    print(response.choices[0].message.content)
+
+    message = response.choices[0].message
+    if message.tool_calls:
+        for tool_call in message.tool_calls:
+            function_args = json.loads(tool_call.function.arguments or "{}")
+            print(f"Calling function:  {tool_call.function.name}({function_args})")
+    else:
+        print(message.content)
 
 generate_content()
