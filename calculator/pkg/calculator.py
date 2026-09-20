@@ -21,15 +21,41 @@ class Calculator:
     def evaluate(self, expression: str) -> float | None:
         if not expression or expression.isspace():
             return None
-        tokens = expression.strip().split()
+        tokens = self._tokenize(expression)
         return self._evaluate_infix(tokens)
+
+    def _tokenize(self, expression: str) -> list[str]:
+        """Split expression into tokens, separating operators and parentheses."""
+        tokens = []
+        current = ""
+        for char in expression:
+            if char == " ":
+                continue
+            if char in "()+-*/":
+                if current:
+                    tokens.append(current)
+                    current = ""
+                tokens.append(char)
+            else:
+                current += char
+        if current:
+            tokens.append(current)
+        return tokens
 
     def _evaluate_infix(self, tokens: list[str]) -> float:
         values: list[float] = []
         operators: list[str] = []
 
         for token in tokens:
-            if token in self.operators:
+            if token == "(":
+                operators.append(token)
+            elif token == ")":
+                while operators and operators[-1] != "(":
+                    self._apply_operator(operators, values)
+                if not operators:
+                    raise ValueError("unmatched closing parenthesis")
+                operators.pop()  # remove "("
+            elif token in self.operators:
                 while (
                     operators
                     and operators[-1] in self.operators
@@ -44,6 +70,8 @@ class Calculator:
                     raise ValueError(f"invalid token: {token}")
 
         while operators:
+            if operators[-1] == "(":
+                raise ValueError("unmatched opening parenthesis")
             self._apply_operator(operators, values)
 
         if len(values) != 1:
